@@ -1,2 +1,2 @@
 # compmusicology
-Readme
+This is my repository for the computational musicology course.
