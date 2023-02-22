@@ -2,7 +2,9 @@
 title: "Computational Musicology"
 author: "Pepijn Bruinaars"
 date: "2023-02-13"
-output: html_document
+output: 
+  flexdashboard::flex_dashboard:
+    storyboard: true
 ---
 
 ```{r echo=FALSE, message=FALSE}
@@ -13,14 +15,19 @@ corpus_features <- get_playlist_audio_features("", "443PhwLJ63ci5JD8UpzNGf")
 styled <- theme_bw() + 
   theme(
     plot.title = element_text(face = "bold", size = 12),
-    legend.background = element_rect(fill = "white", linewidth = 4, colour = "white"),
+    legend.background = element_rect(
+      fill = "white",
+      linewidth = 4,
+      colour = "white"),
     axis.ticks = element_line(colour = "grey70", linewidth = 0.2),
     panel.grid.major = element_line(colour = "grey70", linewidth = 0.2),
     panel.grid.minor = element_blank()
   )
 ```
 
-## Introduction
+# Introduction {.storyboard}
+
+### Introduction
 
 This is my repository for the computational musicology course. During this course, I will be analyzing my personal [Spotify playlist](https://open.spotify.com/playlist/443PhwLJ63ci5JD8UpzNGf?si=373978fd923d44d5). It consists of 2466 songs and an aggregated playtime of 143 hours and 18 minutes. This playlist started somewhere back in 2015 or 2016 and therefore tells you a lot about what I was going through in my life at specific times. One could say it functions as some sort of diary.
 
@@ -28,7 +35,7 @@ I will analyze the playlist on 3 or 6-month splits (yet to be determined!). This
 
 The tracks in this corpus are very representative of each period since my music taste varies based on various factors which also contribute to particular feelings, e.g. seasons and an everchanging music taste.
 
-## (A)typical tracks in the playlist
+### (A)typical tracks in the playlist
 
 Most of the songs in the playlist will fall into the EDM/Pop genres, with Future Bass being a particularly frequent occurrence. Tracks that might be very typical for this playlist could include:
 
@@ -50,15 +57,11 @@ Meanwhile, standout tracks could be:
 
 These tracks are all a bit sadder than the usual and mark periods such as COVID-lockdowns in the Netherlands. The genres as identified by everynoise.com, change from Future Bass to the likes of post-rock and other less energetic genres.
 
+# Analysis {.storyboard}
+
 ### Danceability and tempo
 
-I've included a plot with the *tempo*, *danceability* and *valence* of my corpus plotted against each other. I find this graph particularly interesting, since it shows a couple of defining characteristics from the corpus.
-
-Most future bass and house music has a tempo range of 128-160 BPM. These ranges can be spotted easily in the graph, since there are distinct vertical lines which enclose the entirety of this range, with the vast majority of tracks having a tempo between 128 and 160 BPM.
-
-However, the plotted trend line shows that as the tempo increases past the 128 BPM threshold, danceability (on average) seems to decrease, which is unexpected. I excted the danceability to increase as the tempo increases. This is because most high tempo (\>160 BPM) in this corpus are hard-dance tracks, which I've always considered danceable (albeit in a very different way than dancing to other genres). One such outlier is the track in the bottom-right corner: [Infinity](https://open.spotify.com/track/4l549wQMFj7HvlB7jzQnck?si=4202ba0f613f4ade) by Sefa and D-Block & S-te-Fan. This is a french-core track with intense kicks, which I would define as a highly danceable track. I will look to find out what defines a danceable track to Spotify.
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+```{r, echo=FALSE}
 corpus_features |> ggplot(aes(x = tempo, y = danceability, color=valence)) +
   geom_jitter(aes(alpha = 0.4)) +
   geom_smooth() +
@@ -74,13 +77,24 @@ corpus_features |> ggplot(aes(x = tempo, y = danceability, color=valence)) +
     title = "Danceability vs. Tempo and Valence",
   ) +
   guides(alpha = FALSE)
-
 ```
 
-I also included a histogram which shows the distribution of tempos, and confirms the statements I made above.
+***
+
+I've included a plot with the *tempo*, *danceability* and *valence* of my corpus plotted against each other. I find this graph particularly interesting, since it shows a couple of defining characteristics from the corpus.
+
+Most future bass and house music has a tempo range of 128-160 BPM. These ranges can be spotted easily in the graph, since there are distinct vertical lines which enclose the entirety of this range, with the vast majority of tracks having a tempo between 128 and 160 BPM.
+
+However, the plotted trend line shows that as the tempo increases past the 128 BPM threshold, danceability (on average) seems to decrease, which is unexpected. I excted the danceability to increase as the tempo increases. This is because most high tempo (\>160 BPM) in this corpus are hard-dance tracks, which I've always considered danceable (albeit in a very different way than dancing to other genres). One such outlier is the track in the bottom-right corner: [Infinity](https://open.spotify.com/track/4l549wQMFj7HvlB7jzQnck?si=4202ba0f613f4ade) by Sefa and D-Block & S-te-Fan. This is a french-core track with intense kicks, which I would define as a highly danceable track. I will look to find out what defines a danceable track to Spotify.
+
+### Tempo Histogram
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 corpus_features |> ggplot(aes(x = tempo)) + 
   theme_bw() + 
   geom_histogram(binwidth = 5)
 ```
+
+***
+
+I also included a histogram which shows the distribution of tempos, and confirms the statements I made above.
