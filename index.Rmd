@@ -97,7 +97,57 @@ corpus_features |> ggplot(aes(x = tempo)) +
 
 I also included a histogram which shows the distribution of tempos, and confirms the statements I made above.
 
-### Chromagram of Still Together
+### Chromagram of Still Together (euclidian)
+
+```{r, euclidian}
+chroma <- get_tidy_audio_analysis("4pWXN0gyIOqxODSGGgAMr4") |>
+  select(segments) |>
+  unnest(segments) |>
+  select(start, duration, pitches)
+
+chroma |>
+  mutate(pitches = map(pitches, compmus_normalise, "euclidean")) |>
+  compmus_gather_chroma() |> 
+  ggplot(
+    aes(
+      x = start + duration / 2,
+      width = duration,
+      y = pitch_class,
+      fill = value
+    )
+  ) +
+  geom_tile() +
+  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
+  theme_minimal() +
+  scale_fill_viridis_c()
+```
+
+### Chromagram of Still Together (Manhattan)
+
+```{r, manhattan}
+chroma <- get_tidy_audio_analysis("4pWXN0gyIOqxODSGGgAMr4") |>
+  select(segments) |>
+  unnest(segments) |>
+  select(start, duration, pitches)
+
+chroma |>
+  mutate(pitches = map(pitches, compmus_normalise, "manhattan")) |>
+  compmus_gather_chroma() |> 
+  ggplot(
+    aes(
+      x = start + duration / 2,
+      width = duration,
+      y = pitch_class,
+      fill = value
+    )
+  ) +
+  geom_tile() +
+  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
+  theme_minimal() +
+  scale_fill_viridis_c()
+```
+
+### Chromagram of Still Together (Chebyshev)
 
 ```{r, chromagram}
 chroma <- get_tidy_audio_analysis("4pWXN0gyIOqxODSGGgAMr4") |>
@@ -106,7 +156,7 @@ chroma <- get_tidy_audio_analysis("4pWXN0gyIOqxODSGGgAMr4") |>
   select(start, duration, pitches)
 
 chroma |>
-  mutate(pitches = map(pitches, compmus_normalise, "euclidean")) |>
+  mutate(pitches = map(pitches, compmus_normalise, "chebyshev")) |>
   compmus_gather_chroma() |> 
   ggplot(
     aes(
