@@ -5,6 +5,7 @@ date: "2023-02-13"
 output: 
   flexdashboard::flex_dashboard:
     storyboard: true
+    theme: yeti
 ---
 
 ```{r echo=FALSE, message=FALSE}
