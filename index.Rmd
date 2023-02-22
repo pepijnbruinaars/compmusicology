@@ -7,10 +7,11 @@ output:
     storyboard: true
     theme: yeti
 ---
-
-```{r echo=FALSE, message=FALSE}
+```{r, setup}
 library(tidyverse)
+library(plotly)
 library(spotifyr)
+library(compmus)
 
 corpus_features <- get_playlist_audio_features("", "443PhwLJ63ci5JD8UpzNGf")
 styled <- theme_bw() + 
@@ -25,8 +26,6 @@ styled <- theme_bw() +
     panel.grid.minor = element_blank()
   )
 ```
-
-# Introduction {.storyboard}
 
 ### Introduction
 
@@ -58,11 +57,9 @@ Meanwhile, standout tracks could be:
 
 These tracks are all a bit sadder than the usual and mark periods such as COVID-lockdowns in the Netherlands. The genres as identified by everynoise.com, change from Future Bass to the likes of post-rock and other less energetic genres.
 
-# Analysis {.storyboard}
-
 ### Danceability and tempo
 
-```{r, echo=FALSE}
+```{r, Danceability, echo=FALSE}
 corpus_features |> ggplot(aes(x = tempo, y = danceability, color=valence)) +
   geom_jitter(aes(alpha = 0.4)) +
   geom_smooth() +
