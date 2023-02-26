@@ -97,60 +97,10 @@ corpus_features |> ggplot(aes(x = tempo)) +
 
 I also included a histogram which shows the distribution of tempos, and confirms the statements I made above.
 
-### Chromagram of Still Together (euclidian)
-
-```{r, euclidian}
-chroma <- get_tidy_audio_analysis("4pWXN0gyIOqxODSGGgAMr4") |>
-  select(segments) |>
-  unnest(segments) |>
-  select(start, duration, pitches)
-
-chroma |>
-  mutate(pitches = map(pitches, compmus_normalise, "euclidean")) |>
-  compmus_gather_chroma() |> 
-  ggplot(
-    aes(
-      x = start + duration / 2,
-      width = duration,
-      y = pitch_class,
-      fill = value
-    )
-  ) +
-  geom_tile() +
-  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
-  theme_minimal() +
-  scale_fill_viridis_c()
-```
-
-### Chromagram of Still Together (Manhattan)
-
-```{r, manhattan}
-chroma <- get_tidy_audio_analysis("4pWXN0gyIOqxODSGGgAMr4") |>
-  select(segments) |>
-  unnest(segments) |>
-  select(start, duration, pitches)
-
-chroma |>
-  mutate(pitches = map(pitches, compmus_normalise, "manhattan")) |>
-  compmus_gather_chroma() |> 
-  ggplot(
-    aes(
-      x = start + duration / 2,
-      width = duration,
-      y = pitch_class,
-      fill = value
-    )
-  ) +
-  geom_tile() +
-  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
-  theme_minimal() +
-  scale_fill_viridis_c()
-```
-
-### Chromagram of Still Together (Chebyshev)
+### Chromagram of Infinity (Chebyshev)
 
 ```{r, chromagram}
-chroma <- get_tidy_audio_analysis("4pWXN0gyIOqxODSGGgAMr4") |>
+chroma <- get_tidy_audio_analysis("4l549wQMFj7HvlB7jzQnck") |>
   select(segments) |>
   unnest(segments) |>
   select(start, duration, pitches)
@@ -171,3 +121,7 @@ chroma |>
   theme_minimal() +
   scale_fill_viridis_c()
 ```
+
+***
+
+In this visualisation, I've chosen the outlier from my dataset I discussed previously, namely Infinity. Rendering the chromagram of this track somehow makes us able to see some structure in the track. The melodic intro and verses are easy to distinguish and all fit into a scale very well. However, the drops are also easy to discern, with the chroma features getting more spread out and centered around a few notes. This is especially notable during the second drop, where there are only three 'main' notes being played: C, C# and B. This distribution is mainly caused by the fact that this part consists mostly of kicks and heavy basslines, playing single notes. I'm interested in seeing what insights from next week will confirm the ones from this week.
