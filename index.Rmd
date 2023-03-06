@@ -60,7 +60,7 @@ These tracks are all a bit sadder than the usual and mark periods such as COVID-
 ### Danceability and tempo
 
 ```{r, Danceability, echo=FALSE}
-corpus_features |> ggplot(aes(x = tempo, y = danceability, color=valence)) +
+plot1 <- corpus_features |> ggplot(aes(x = tempo, y = danceability, color=valence, label = track.name)) +
   geom_jitter(aes(alpha = 0.4)) +
   geom_smooth() +
   annotate("text", 200, 0.1, label = "Infinity") +
@@ -75,6 +75,8 @@ corpus_features |> ggplot(aes(x = tempo, y = danceability, color=valence)) +
     title = "Danceability vs. Tempo and Valence",
   ) +
   guides(alpha = FALSE)
+
+ggplotly(plot1)
 ```
 
 ***
@@ -125,3 +127,72 @@ chroma |>
 ***
 
 In this visualisation, I've chosen the outlier from my dataset I discussed previously, namely Infinity. Rendering the chromagram of this track somehow makes us able to see some structure in the track. The melodic intro and verses are easy to distinguish and all fit into a scale very well. However, the drops are also easy to discern, with the chroma features getting more spread out and centered around a few notes. This is especially notable during the second drop, where there are only three 'main' notes being played: C, C# and B. This distribution is mainly caused by the fact that this part consists mostly of kicks and heavy basslines, playing single notes. I'm interested in seeing what insights from next week will confirm the ones from this week.
+
+### Cepstogram
+
+```{r, cepstogram}
+bzt <-
+  get_tidy_audio_analysis("4pWXN0gyIOqxODSGGgAMr4") |> # Change URI.
+  # get_tidy_audio_analysis("5uL2NjzkGMbDcaKKrCdFzG") |>
+  compmus_align(beats, segments) |>                     # Change `bars`
+  select(beats) |>                                      #   in all three
+  unnest(beats) |>                                      #   of these lines.
+  mutate(
+    pitches =
+      map(segments,
+        compmus_summarise, pitches,
+        method = "rms", norm = "euclidean"              # Change summary & norm.
+      )
+  ) |>
+  mutate(
+    timbre =
+      map(segments,
+        compmus_summarise, timbre,
+        method = "rms", norm = "euclidean"              # Change summary & norm.
+      )
+  )
+
+bzt |>
+  compmus_gather_timbre() |>
+  ggplot(
+    aes(
+      x = start + duration / 2,
+      width = duration,
+      y = basis,
+      fill = value
+    )
+  ) +
+  geom_tile() +
+  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
+  scale_fill_viridis_c() +                              
+  theme_classic()
+```
+
+***
+
+Text
+
+### Self-similarity matrix
+
+```{r, ssm}
+bzt |>
+  compmus_self_similarity(pitches, "aitchison") |> 
+  ggplot(
+    aes(
+      x = xstart + xduration / 2,
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d
+    )
+  ) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis_c(guide = "none") +
+  theme_classic() +
+  labs(x = "", y = "")
+```
+
+***
+
+This is a self-similarity matrix of the song Still Together, which is (coincidentally) made by me and a friend. In the track, we used the same chord progression throughout, and only changed this in the outro, which can be clearly seen by the black box on the end of the main diagonal. The two drops can also be determined by the two darker section in the middle. This is mostly due to new melodic elements being introduced.
