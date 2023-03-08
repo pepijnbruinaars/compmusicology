@@ -12,6 +12,7 @@ library(tidyverse)
 library(plotly)
 library(spotifyr)
 library(compmus)
+library(gridExtra)
 
 corpus_features <- get_playlist_audio_features("", "443PhwLJ63ci5JD8UpzNGf")
 styled <- theme_bw() + 
@@ -59,9 +60,17 @@ These tracks are all a bit sadder than the usual and mark periods such as COVID-
 
 ### Danceability and tempo
 
-```{r, Danceability, echo=FALSE}
-plot1 <- corpus_features |> ggplot(aes(x = tempo, y = danceability, color=valence, label = track.name)) +
-  geom_jitter(aes(alpha = 0.4)) +
+```{r, Danceability, echo=FALSE, message = FALSE, warning=FALSE, fig.width=10, fig.height=5}
+plot1 <- corpus_features |> ggplot(
+  aes(x = tempo,
+      y = danceability,
+      color = valence,
+      )
+    ) +
+    geom_jitter(aes(alpha = 0.4,
+                  text = paste(track.name, 
+                               map_chr(track.artists, ~ paste(.x$name, collapse = ", ")),
+                               sep = " - ")))  +
   geom_smooth() +
   annotate("text", 200, 0.1, label = "Infinity") +
   scale_y_continuous(
@@ -76,7 +85,14 @@ plot1 <- corpus_features |> ggplot(aes(x = tempo, y = danceability, color=valenc
   ) +
   guides(alpha = FALSE)
 
-ggplotly(plot1)
+# Make the tooltip display only the tempo, danceability, track name and valence
+ggplotly(plot1, tooltip=c("x", "y", "text", "color")) %>%
+  layout(
+    xaxis = list(title = "Tempo"),
+    yaxis = list(title = "Danceability"),
+    hovermode = "closest"
+  )
+
 ```
 
 ***
@@ -86,18 +102,6 @@ I've included a plot with the *tempo*, *danceability* and *valence* of my corpus
 Most future bass and house music has a tempo range of 128-160 BPM. These ranges can be spotted easily in the graph, since there are distinct vertical lines which enclose the entirety of this range, with the vast majority of tracks having a tempo between 128 and 160 BPM.
 
 However, the plotted trend line shows that as the tempo increases past the 128 BPM threshold, danceability (on average) seems to decrease, which is unexpected. I excted the danceability to increase as the tempo increases. This is because most high tempo (\>160 BPM) in this corpus are hard-dance tracks, which I've always considered danceable (albeit in a very different way than dancing to other genres). One such outlier is the track in the bottom-right corner: [Infinity](https://open.spotify.com/track/4l549wQMFj7HvlB7jzQnck?si=4202ba0f613f4ade) by Sefa and D-Block & S-te-Fan. This is a french-core track with intense kicks, which I would define as a highly danceable track. I will look to find out what defines a danceable track to Spotify.
-
-### Tempo Histogram
-
-```{r, histogram}
-corpus_features |> ggplot(aes(x = tempo)) + 
-  theme_bw() + 
-  geom_histogram(binwidth = 5)
-```
-
-***
-
-I also included a histogram which shows the distribution of tempos, and confirms the statements I made above.
 
 ### Chromagram of Infinity (Chebyshev)
 
