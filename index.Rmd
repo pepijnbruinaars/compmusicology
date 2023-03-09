@@ -114,6 +114,124 @@ key_templates <-
   )
 ```
 
+### Chordograms
+```{r, chordogram}
+gold_away <-
+  get_tidy_audio_analysis("0OtEOm1n6owWtb5h1Ncei4") |>
+  compmus_align(bars, segments) |>
+  select(bars) |>
+  unnest(bars) |>
+  mutate(
+    pitches =
+      map(segments,
+        compmus_summarise, pitches,
+        method = "rms", norm = "euclidean"
+      )
+  )
+
+gold_heart <-
+  get_tidy_audio_analysis("2NsOLbG8B9d2QuzKVJO5hZ") |>
+  compmus_align(bars, segments) |>
+  select(bars) |>
+  unnest(bars) |>
+  mutate(
+    pitches =
+      map(segments,
+        compmus_summarise, pitches,
+        method = "rms", norm = "euclidean"
+      )
+  )
+
+original_chord <- gold_away |>
+  compmus_match_pitch_template(
+    key_templates,         # Change to chord_templates if descired
+    method = "euclidean",  # Try different distance metrics
+    norm = "euclidean"     # Try different norms
+  ) |>
+  ggplot(
+    aes(x = start + duration / 2, width = duration, y = name, fill = d)
+  ) +
+  geom_tile() +
+  scale_fill_viridis_c(guide = "none") +
+  theme_minimal() +
+  labs(x = "Time (s)", y = "")
+
+heart_chord <- gold_heart |>
+  compmus_match_pitch_template(
+    key_templates,         # Change to chord_templates if descired
+    method = "aitchison",  # Try different distance metrics
+    norm = "manhattan"     # Try different norms
+  ) |>
+  ggplot(
+    aes(x = start + duration / 2, width = duration, y = name, fill = d)
+  ) +
+  geom_tile() +
+  scale_fill_viridis_c(guide = "none") +
+  theme_minimal() +
+  labs(x = "Time (s)", y = "")
+
+grid.arrange(original_chord, heart_chord, nrow = 2)
+```
+
+***
+
+Text
+
+### Track level summaries
+
+```{r, bitbird}
+gf1 <-
+  get_playlist_audio_features("", "5kEJhZTWUR28ppmuJmeAQO") |>
+  add_audio_analysis()
+gf2 <-
+  get_playlist_audio_features(
+    "",
+    "37RQUc3WTPJCLevgr6eFqy"
+  ) |>
+  add_audio_analysis()
+gf3 <-
+  get_playlist_audio_features(
+    "",
+    "1KqOWYQQCIM7aO9WzX1f4d"
+  ) |>
+  add_audio_analysis()
+gf4 <-
+  get_playlist_audio_features(
+    "",
+    "0IggDA4Wzw7PHfDiAK0pcM"
+  ) |>
+  add_audio_analysis()
+bitbird <-
+  gf1 |>
+  mutate(album = "Gouldian Finch") |>
+  bind_rows(gf2 |> mutate(album = "Gouldian Finch 2")) |>
+  bind_rows(gf3 |> mutate(album = "Gouldian Finch 3")) |>
+  bind_rows(gf4 |> mutate(album = "Gouldian Finch 4"))
+
+bitbird_plot <- bitbird |>
+  mutate(
+    timbre =
+      map(
+        segments,
+        compmus_summarise,
+        timbre,
+        method = "mean"
+      )
+  ) |>
+  select(album, timbre) |>
+  compmus_gather_timbre() |>
+  ggplot(aes(x = basis, y = value, fill = album)) +
+  geom_violin() +
+  scale_fill_viridis_d() +
+  labs(x = "Spotify Timbre Coefficients", y = "", fill = "Album")
+
+ggplotly(bitbird_plot)
+```
+
+***
+
+Text
+
 ### Introduction
 
 This is my repository for the computational musicology course. During this course, I will be analyzing my personal [Spotify playlist](https://open.spotify.com/playlist/443PhwLJ63ci5JD8UpzNGf?si=373978fd923d44d5). It consists of 2466 songs and an aggregated playtime of 143 hours and 18 minutes. This playlist started somewhere back in 2015 or 2016 and therefore tells you a lot about what I was going through in my life at specific times. One could say it functions as some sort of diary.
@@ -242,7 +360,7 @@ original <-
   )
 
 heart <-
-get_tidy_audio_analysis("2NsOLbG8B9d2QuzKVJO5hZ") |>
+  get_tidy_audio_analysis("2NsOLbG8B9d2QuzKVJO5hZ") |>
   compmus_align(bars, segments) |>
   select(bars) |>
   unnest(bars) |>
