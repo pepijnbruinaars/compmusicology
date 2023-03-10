@@ -1,7 +1,7 @@
 ---
 title: "Computational Musicology"
 author: "Pepijn Bruinaars"
-date: "2023-02-13"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
 output: 
   flexdashboard::flex_dashboard:
     storyboard: true
@@ -13,19 +13,6 @@ library(plotly)
 library(spotifyr)
 library(compmus)
 library(gridExtra)
-
-corpus_features <- get_playlist_audio_features("", "443PhwLJ63ci5JD8UpzNGf")
-styled <- theme_bw() +
-  theme(
-    plot.title = element_text(face = "bold", size = 12),
-    legend.background = element_rect(
-      fill = "white",
-      linewidth = 4,
-      colour = "white"),
-    axis.ticks = element_line(colour = "grey70", linewidth = 0.2),
-    panel.grid.major = element_line(colour = "grey70", linewidth = 0.2),
-    panel.grid.minor = element_blank()
-  )
 
 circshift <- function(v, n) {
   if (n == 0) v else c(tail(v, n), head(v, -n))
@@ -114,8 +101,23 @@ key_templates <-
   )
 ```
 
-### Chordograms
-```{r, chordogram}
+```{r, spotify_features}
+corpus_features <- get_playlist_audio_features("", "443PhwLJ63ci5JD8UpzNGf")
+styled <- theme_bw() +
+  theme(
+    plot.title = element_text(face = "bold", size = 12),
+    legend.background = element_rect(
+      fill = "white",
+      linewidth = 4,
+      colour = "white"),
+    axis.ticks = element_line(colour = "grey70", linewidth = 0.2),
+    panel.grid.major = element_line(colour = "grey70", linewidth = 0.2),
+    panel.grid.minor = element_blank()
+  )
+```
+
+### How different are Gold Away and its edit?
+```{r, gold_away_vs_gold_away_edit}
 gold_away <-
   get_tidy_audio_analysis("0OtEOm1n6owWtb5h1Ncei4") |>
   compmus_align(bars, segments) |>
@@ -175,9 +177,19 @@ grid.arrange(original_chord, heart_chord, nrow = 2)
 
 ***
 
-Text
+I've included 2 chordograms of 2 different tracks. They're made by Former Hero, who is a producer of future bass and vapor twitch 
+according to everynoise.com. The first track is a beautiful piece called [Gold Away](https://open.spotify.com/track/0OtEOm1n6owWtb5h1Ncei4) (definitely check it out if you get the chance), 
+and its chordogram is on top. It is a very atmospheric piano track, which starts with some grainy piano sounds. This is visible in the chordogram,
+as the first chord is D major. Because of the slow nature of the track, we can easily discern the rest of the chords.
 
-### Track level summaries
+The second track is an edit of this track, called [gold away - heart version](https://open.spotify.com/track/2NsOLbG8B9d2QuzKVJO5hZ). This track is 
+a more "housey" version which samples the original. Its chordogram is a bit difficult to read, but it is clear that in the edit, 
+the piece is pitched up with 2 semitones. Since the track is also faster paced, and is longer than the original, it is harder to 
+discern the chords that are being played. However, the same pattern is still visible, it's just in a higher place compared to the first chordogram.
+
+Chordograms are a good way to compare these two tracks, as they are both by the same artist and are very similar in nature.
+
+### Does the Bitbird sound change over the years? (Track level summaries) {data-commentary-width=400}
 
 ```{r, bitbird}
 gf1 <-
@@ -208,6 +220,7 @@ bitbird <-
   bind_rows(gf3 |> mutate(album = "Gouldian Finch 3")) |>
   bind_rows(gf4 |> mutate(album = "Gouldian Finch 4"))
 
+# I want to add a trendline for each timbre category
 bitbird_plot <- bitbird |>
   mutate(
     timbre =
@@ -222,6 +235,7 @@ bitbird_plot <- bitbird |>
   compmus_gather_timbre() |>
   ggplot(aes(x = basis, y = value, fill = album)) +
   geom_violin() +
+  geom_smooth(method = "lm", se = FALSE) +
   scale_fill_viridis_d() +
   labs(x = "Spotify Timbre Coefficients", y = "", fill = "Album")
 
@@ -230,19 +244,42 @@ ggplotly(bitbird_plot)
 
 ***
 
-Text
+These are the results of the analysis of the tracks of 4 albums. These albums are compilations of tracks by many different artists, and is
+compiled by the label Bitbird, which is a label that I have been following for a while and it has a massive footprint on my playlist.
+Because of this, they are very representative of my playlist. Almost all tracks in these compilations can be found in my playlist.
+The compilations are called '[Gouldian Finch](https://open.spotify.com/album/2zxH8phePC3VEFDPJV4kFq)', '[Gouldian Finch 2](https://open.spotify.com/album/4jCNXDzme5yj9WhGTh76O8)', '[Gouldian Finch 3](https://open.spotify.com/album/3GDnGYJDgsWLUuxypxmNEI)' and '[Gouldian Finch 4](https://open.spotify.com/album/4GX6Laa0cgCbiKjJKg7DfH)'. The albums were released 
+in 2016, 2017, 2019, and 2021 respectively.
+
+I have plotted the distribution of the Spotify Timbre Coefficients for each album. These coefficients are hard to interpret, but they
+are a good way to compare the timbre of the tracks in the albums. As you can see, the distributions for the most part are very similar,
+but there are also a few trends that can be seen. For example, we can see that the distribution of coefficient 2 is clearly going down. 
+Over the years, although the distribution of it in the first compilation is very widespread. The second coefficent is associated with the 
+brightness of the track, so according to this analysis, one could say that the overall brightness coefficent of the tracks is steadily decreasing.
+This is also a trend that can be heard, when listening to the compilations.
+
+This same downward trend can be seen in the distributions of the 3rd coefficient. This coefficient is associated with the flatness of the sounds,
+which is a way to quantify how much a sound resembles a pure tone, as opposed to being noise-like.
+This is a very interesting trend, because the music in the compilations is indeed becoming more and more organic and "lo-fi noisy" over the years.
 
 ### Introduction
 
-This is my repository for the computational musicology course. During this course, I will be analyzing my personal [Spotify playlist](https://open.spotify.com/playlist/443PhwLJ63ci5JD8UpzNGf?si=373978fd923d44d5). It consists of 2466 songs and an aggregated playtime of 143 hours and 18 minutes. This playlist started somewhere back in 2015 or 2016 and therefore tells you a lot about what I was going through in my life at specific times. One could say it functions as some sort of diary.
+This is my repository for the computational musicology course. During this course, I will be analyzing my personal 
+[Spotify playlist](https://open.spotify.com/playlist/443PhwLJ63ci5JD8UpzNGf?si=373978fd923d44d5), and tracks which 
+might be similar. It consists of 2466 (update at the end of course!!!) songs and an aggregated playtime of 143 hours and 18 minutes. 
+This playlist started somewhere back in 2015 or 2016 and therefore tells you a lot about what I was going through in my life at 
+specific times. One could say it functions as some sort of diary.
 
-I will analyze the playlist on 3 or 6-month splits (yet to be determined!). This can be done by looking at the `date_added` variables which are returned when a GET request is done to the <https://api.spotify.com/v1/playlists/playlist_id> URL. I can also make a comparison between my so-called Top Items and recent tracks in my playlist.
+I will analyze the playlist on 3 or 6-month splits (yet to be determined!). This can be done by looking at the `date_added` 
+variables which are returned when a GET request is done to the <https://api.spotify.com/v1/playlists/playlist_id> URL. 
+I can also make a comparison between my so-called Top Items and recent tracks in my playlist.
 
-The tracks in this corpus are very representative of each period since my music taste varies based on various factors which also contribute to particular feelings, e.g. seasons and an everchanging music taste.
+The tracks in this corpus are very representative of each period since my music taste varies based on various factors which also 
+contribute to particular feelings, e.g. seasons and an everchanging music taste.
 
 ### (A)typical tracks in the playlist
 
-Most of the songs in the playlist will fall into the EDM/Pop genres, with Future Bass being a particularly frequent occurrence. Tracks that might be very typical for this playlist could include:
+Most of the songs in the playlist will fall into the EDM/Pop genres, with Future Bass being a particularly frequent occurrence. 
+Tracks that might be very typical for this playlist could include:
 
 1.  [Light - San Holo](https://open.spotify.com/track/74Ru27B7Jx8mBt5MGvGLLv?si=930bed36366a4aab)
 
@@ -260,7 +297,8 @@ Meanwhile, standout tracks could be:
 
 3.  [There Will Be Tears - Mr Hudson](https://open.spotify.com/track/1cSITnw1sufeq4hEFX1q2N?si=806763d6dfe644dd)
 
-These tracks are all a bit sadder than the usual and mark periods such as COVID-lockdowns in the Netherlands. The genres as identified by everynoise.com, change from Future Bass to the likes of post-rock and other less energetic genres.
+These tracks are all a bit sadder than the usual and mark periods such as COVID-lockdowns in the Netherlands. 
+The genres as identified by everynoise.com, change from Future Bass to the likes of post-rock and other less energetic genres.
 
 ### Danceability and tempo
 
@@ -301,11 +339,18 @@ ggplotly(plot1, tooltip = c("text", "x", "y", "color")) %>%
 
 ***
 
-I've included a plot with the *tempo*, *danceability* and *valence* of my corpus plotted against each other. I find this graph particularly interesting, since it shows a couple of defining characteristics from the corpus.
+I've included a plot with the *tempo*, *danceability* and *valence* of my corpus plotted against each other. I find this graph 
+particularly interesting, since it shows a couple of defining characteristics from the corpus.
 
-Most future bass and house music has a tempo range of 128-160 BPM. These ranges can be spotted easily in the graph, since there are distinct vertical lines which enclose the entirety of this range, with the vast majority of tracks having a tempo between 128 and 160 BPM.
+Most future bass and house music has a tempo range of 128-160 BPM. These ranges can be spotted easily in the graph, since there 
+are distinct vertical lines which enclose the entirety of this range, with the vast majority of tracks having a tempo between 128 and 160 BPM.
 
-However, the plotted trend line shows that as the tempo increases past the 128 BPM threshold, danceability (on average) seems to decrease, which is unexpected. I excted the danceability to increase as the tempo increases. This is because most high tempo (\>160 BPM) in this corpus are hard-dance tracks, which I've always considered danceable (albeit in a very different way than dancing to other genres). One such outlier is the track in the bottom-right corner: [Infinity](https://open.spotify.com/track/4l549wQMFj7HvlB7jzQnck?si=4202ba0f613f4ade) by Sefa and D-Block & S-te-Fan. This is a french-core track with intense kicks, which I would define as a highly danceable track. I will look to find out what defines a danceable track to Spotify.
+However, the plotted trend line shows that as the tempo increases past the 128 BPM threshold, danceability (on average) seems to 
+decrease, which is unexpected. I excted the danceability to increase as the tempo increases. This is because most high tempo 
+(\>160 BPM) in this corpus are hard-dance tracks, which I've always considered danceable (albeit in a very different way 
+than dancing to other genres). One such outlier is the track in the bottom-right corner: 
+[Infinity](https://open.spotify.com/track/4l549wQMFj7HvlB7jzQnck?si=4202ba0f613f4ade) by Sefa and D-Block & S-te-Fan. 
+This is a french-core track with intense kicks, which I would define as a highly danceable track.
 
 ### Chromagram of Infinity (Chebyshev)
 
@@ -334,7 +379,13 @@ chroma |>
 
 ***
 
-In this visualisation, I've chosen the outlier from my dataset I discussed previously, namely Infinity. Rendering the chromagram of this track somehow makes us able to see some structure in the track. The melodic intro and verses are easy to distinguish and all fit into a scale very well. However, the drops are also easy to discern, with the chroma features getting more spread out and centered around a few notes. This is especially notable during the second drop, where there are only three 'main' notes being played: C, C# and B. This distribution is mainly caused by the fact that this part consists mostly of kicks and heavy basslines, playing single notes. I'm interested in seeing what insights from next week will confirm the ones from this week.
+In this visualisation, I've chosen the outlier from my dataset I discussed previously, namely Infinity. 
+Rendering the chromagram of this track somehow makes us able to see some structure in the track. 
+The melodic intro and verses are easy to distinguish and all fit into a scale very well. However, 
+the drops are also easy to discern, with the chroma features getting more spread out and centered around a few notes. 
+This is especially notable during the second drop, where there are only three 'main' notes being played: C, C# and B. 
+This distribution is mainly caused by the fact that this part consists mostly of kicks and heavy basslines, playing single notes. 
+I'm interested in seeing what insights from next week will confirm the ones from this week.
 
 ### Analysis of gold away and gold away (heart version) by Former Hero
 
@@ -444,8 +495,8 @@ In december 2022, he released an edit of the track called
 with a more upbeat tempo and overall higher danceability. It features floaty synths, but the main
 piano melody is still present throughout the entire track.
 
-I've created 4 self similarity matrices for both tracks. The top two are created using chroma and timbre features of the original track, while the 
-bottom 2 are created using the edited version.
+I've created 4 self similarity matrices for both tracks. The top two are created using chroma and timbre features of 
+the original track, while the bottom 2 are created using the edited version.
 
 ### Cepstogram
 
@@ -514,4 +565,7 @@ bzt |>
 
 ***
 
-This is a self-similarity matrix of the song Still Together, which is (coincidentally) made by me and a friend. In the track, we used the same chord progression throughout, and only changed this in the outro, which can be clearly seen by the black box on the end of the main diagonal. The two drops can also be determined by the two darker section in the middle. This is mostly due to new melodic elements being introduced.
+This is a self-similarity matrix of the song Still Together, which is (coincidentally) made by me and a friend. 
+In the track, we used the same chord progression throughout, and only changed this in the outro, 
+which can be clearly seen by the black box on the end of the main diagonal. The two drops can also be determined 
+by the two darker section in the middle. This is mostly due to new melodic elements being introduced.
