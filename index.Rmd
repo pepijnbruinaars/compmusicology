@@ -133,7 +133,11 @@ grid.arrange(tempogram_1, tempogram_2, nrow = 2)
 
 ***
 
-A lydian
+[A Lydian](https://open.spotify.com/track/18U87POTjpJVmSUL8usDIO) is a beautiful piano piece by Analogue Dear, which also features some atmospheric pads. As you can see, the tempogram fails to find a consensus on the tempo, but it does seem to pick up smears of tempo around certain parts. This is due to the piece's only tempo-indicating feature being the piano, which is also played at various tempos.
+
+Below, I have included a tempogram of San Holo's [i don't feel anything anymore](https://open.spotify.com/track/3P6VeiaresuGYqioZSpors), which starts of really soft, with some keys and pads being played. At around 50 seconds into the track, a heavy bass and some acoustic guitar is added which is being played at a constant tempo. Interestingly, the tempogram performs better in the first part, where there aren't many transient features yet. Up until 3 minutes into the song, it varies a bit between the calmer bits and heavier bass bits. After this mark, however, synths playing regularly timed arpeggios kick in, as well as a kick. After this, a drop happens and so the tempogram performs very well and you can see a clear line forming. After the drop, the pads come in again and the piece is ended in a very calm way.
+
+I'm not sure how relevant the comparison is between these two tempograms, and if I should maybe just include one and leave the other, but I thought both were interesting, especially when following along while listening to the tracks.
 
 ### Introduction
 
