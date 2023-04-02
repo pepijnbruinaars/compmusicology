@@ -3,6 +3,44 @@ corpus_features <- get_playlist_audio_features("", "443PhwLJ63ci5JD8UpzNGf")
 
 saveRDS(object = corpus_features, file = "data/corpus-features.RDS")
 
+# Playlist data
+
+illenium <-
+  get_playlist_audio_features("illenium", "37i9dQZF1DZ06evO2nTSE0") |>
+  add_audio_analysis() |>
+  mutate(
+    segments = map2(segments, key, compmus_c_transpose),
+    pitches =
+      map(segments,
+          compmus_summarise, pitches,
+          method = "mean", norm = "manhattan"
+      ),
+    timbre =
+      map(
+        segments,
+        compmus_summarise, timbre,
+        method = "mean"
+      )
+  ) |>
+  mutate(pitches = map(pitches, compmus_normalise, "clr")) |>
+  mutate_at(vars(pitches, timbre), map, bind_rows) |>
+  unnest(cols = c(pitches, timbre))
+
+saveRDS(object = illenium, file = "data/illenium-data.RDS")
+
+illenium_slice_data <- get_playlist_audio_features("spotify", "6YPjuCeFwwa9QOWgQf2E92")
+dabin_slice_data <- get_playlist_audio_features("spotify", "2NsuHnVHEE8EWGgZ2feWvD")
+saidthesky_slice_data <- get_playlist_audio_features("spotify", "64YMexODQbFxLw7hNczTc6")
+classifier_data <-
+  bind_rows(
+    illenium_slice_data |> mutate(playlist = "Illenium") |> slice_head(n = 27),
+    dabin_slice_data |> mutate(playlist = "Dabin") |> slice_head(n = 27),
+    saidthesky_slice_data |> mutate(playlist = "Said The Sky") |> slice_head(n = 27)
+  ) |> 
+  add_audio_analysis()
+
+saveRDS(object = classifier_data, file="data/classifier-data.RDS")
+
 # --------------
 
 # Track data
@@ -24,7 +62,7 @@ saveRDS(object = a_lydian,file = "data/a-lydian-data.RDS")
 saveRDS(object = dont_feel_anything,file = "data/dont-feel-anything-data.RDS")
 saveRDS(object = infinity, file = "data/infinity-data.RDS")
 saveRDS(object = gold_away, file = "data/gold-away-data.RDS")
-saveRDS(object = gold_away, file = "data/gold-away-heart-data.RDS")
+saveRDS(object = gold_away_heart, file = "data/gold-away-heart-data.RDS")
 saveRDS(object = gf1, file = "data/gf1-data.RDS")
 saveRDS(object = gf2, file = "data/gf2-data.RDS")
 saveRDS(object = gf3, file = "data/gf3-data.RDS")

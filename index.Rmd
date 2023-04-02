@@ -14,6 +14,9 @@ library(plotly)
 library(spotifyr)
 library(compmus)
 library(gridExtra)
+library(tidymodels)
+library(ggdendro)
+library(heatmaply)
 
 circshift <- function(v, n) {
   if (n == 0) v else c(tail(v, n), head(v, -n))
@@ -100,6 +103,23 @@ key_templates <-
     "B:maj", circshift(major_key, 11),
     "D#:min", circshift(minor_key, 3)
   )
+
+get_conf_mat <- function(fit) {
+  outcome <- .get_tune_outcome_names(fit)
+  fit |> 
+    collect_predictions() |> 
+    conf_mat(truth = outcome, estimate = .pred_class)
+}  
+
+get_pr <- function(fit) {
+  fit |> 
+    conf_mat_resampled() |> 
+    group_by(Prediction) |> mutate(precision = Freq / sum(Freq)) |> 
+    group_by(Truth) |> mutate(recall = Freq / sum(Freq)) |> 
+    ungroup() |> filter(Prediction == Truth) |> 
+    select(class = Prediction, precision, recall)
+}
+
 ```
 
 ```{r, spotify_features}
@@ -117,37 +137,11 @@ styled <- theme_bw() +
   )
 ```
 
-### Tempogram
-
-```{r tempogram}
-a_lydian <- readRDS(file = "data/a-lydian-data.RDS")
-
-tempogram_1 <- readRDS(file = "data/tempogram-1.RDS")
-
-dont_feel_anything <- readRDS(file = "data/dont-feel-anything-data.RDS")
-
-tempogram_2 <- readRDS(file = "data/tempogram-2.RDS")
-
-grid.arrange(tempogram_1, tempogram_2, nrow = 2)
-```
-
-***
-
-[A Lydian](https://open.spotify.com/track/18U87POTjpJVmSUL8usDIO) is a beautiful piano piece by Analogue Dear, which also features some atmospheric pads. As you can see, the tempogram fails to find a consensus on the tempo, but it does seem to pick up smears of tempo around certain parts. This is due to the piece's only tempo-indicating feature being the piano, which is also played at various tempos.
-
-Below, I have included a tempogram of San Holo's [i don't feel anything anymore](https://open.spotify.com/track/3P6VeiaresuGYqioZSpors), which starts of really soft, with some keys and pads being played. At around 50 seconds into the track, a heavy bass and some acoustic guitar is added which is being played at a constant tempo. Interestingly, the tempogram performs better in the first part, where there aren't many transient features yet. Up until 3 minutes into the song, it varies a bit between the calmer bits and heavier bass bits. After this mark, however, synths playing regularly timed arpeggios kick in, as well as a kick. After this, a drop happens and so the tempogram performs very well and you can see a clear line forming. After the drop, the pads come in again and the piece is ended in a very calm way.
-
-I'm not sure how relevant the comparison is between these two tempograms, and if I should maybe just include one and leave the other, but I thought both were interesting, especially when following along while listening to the tracks.
-
 ### Introduction
 
-This is my repository for the computational musicology course. During this course, I will be analyzing my personal [Spotify playlist](https://open.spotify.com/playlist/443PhwLJ63ci5JD8UpzNGf?si=373978fd923d44d5), and tracks which might be similar. It consists of 2466 (update at the end of course!!!) songs and an aggregated playtime of 143 hours and 18 minutes. This playlist started somewhere back in 2015 or 2016 and therefore tells you a lot about what I was going through in my life at specific times. One could say it functions as some sort of diary.
-
-I will analyze the playlist on 3 or 6-month splits (yet to be determined!). This can be done by looking at the `date_added` variables which are returned when a GET request is done to the <https://api.spotify.com/v1/playlists/playlist_id> URL. I can also make a comparison between my so-called Top Items and recent tracks in my playlist.
+This is my repository for the computational musicology course. During this course, I will be analyzing my personal [Spotify playlist](https://open.spotify.com/playlist/443PhwLJ63ci5JD8UpzNGf?si=373978fd923d44d5), and tracks which might be similar. It consists of 2493 songs and an aggregated playtime of 144 hours and 58 minutes. This playlist started somewhere back in 2015 or 2016 and therefore tells you a lot about what I was going through in my life at specific times. One could say it functions as some sort of diary.
 
 The tracks in this corpus are very representative of each period since my music taste varies based on various factors which also contribute to particular feelings, e.g. seasons and an everchanging music taste.
-
-### (A)typical tracks in the playlist
 
 Most of the songs in the playlist will fall into the EDM/Pop genres, with Future Bass being a particularly frequent occurrence. Tracks that might be very typical for this playlist could include:
 
@@ -169,7 +163,9 @@ Meanwhile, standout tracks could be:
 
 These tracks are all a bit sadder than the usual and mark periods such as COVID-lockdowns in the Netherlands. The genres as identified by everynoise.com, change from Future Bass to the likes of post-rock and other less energetic genres.
 
-### Danceability and tempo
+I will look into which tracks 'define' me and my musical taste, and what musical features make them stand out.
+
+### Does higher tempo mean better danceability? (Track-level features)
 
 ```{r, Danceability, echo=FALSE, message = FALSE, warning=FALSE, fig.width=10, fig.height=5}
 plot1 <- corpus_features |> ggplot(
@@ -214,7 +210,7 @@ Most future bass and house music has a tempo range of 128-160 BPM. These ranges 
 
 However, the plotted trend line shows that as the tempo increases past the 128 BPM threshold, danceability (on average) seems to decrease, which is unexpected. I excted the danceability to increase as the tempo increases. This is because most high tempo (\>160 BPM) in this corpus are hard-dance tracks, which I've always considered danceable (albeit in a very different way than dancing to other genres). One such outlier is the track in the bottom-right corner: [Infinity](https://open.spotify.com/track/4l549wQMFj7HvlB7jzQnck?si=4202ba0f613f4ade) by Sefa and D-Block & S-te-Fan. This is a french-core track with intense kicks, which I would define as a highly danceable track.
 
-### Chromagram of Infinity (Chebyshev)
+### What's up with Infinity? (Chromagram)
 
 ```{r, chromagram}
 infinity <- readRDS(file = "data/infinity-data.RDS") |>
@@ -241,9 +237,82 @@ infinity |>
 
 ***
 
-In this visualisation, I've chosen the outlier from my dataset I discussed previously, namely Infinity. Rendering the chromagram of this track somehow makes us able to see some structure in the track. The melodic intro and verses are easy to distinguish and all fit into a scale very well. However, the drops are also easy to discern, with the chroma features getting more spread out and centered around a few notes. This is especially notable during the second drop, where there are only three 'main' notes being played: C, C# and B. This distribution is mainly caused by the fact that this part consists mostly of kicks and heavy basslines, playing single notes. I'm interested in seeing what insights from next week will confirm the ones from this week.
+In this visualisation, I've chosen the outlier from my dataset I discussed previously, namely Infinity by Sefa and D-Block & S-te-Fan.
 
-### Analysis of gold away and gold away (heart version) by Former Hero
+Rendering the chromagram of this track somehow makes us able to see some structure in the track. The melodic intro and verses are easy to distinguish and all fit into a scale very well. However, the drops are also easy to discern, with the chroma features getting more spread out and centered around a few notes. This is especially notable during the second drop, where there are only three 'main' notes being played: C, C# and B. This distribution is mainly caused by the fact that this part consists mostly of kicks and heavy basslines, playing single notes.
+
+It is interesting to see how the chromagram works so well for some parts in the track, but isn't that sensible in other parts. This might be down to the selection of time intervals, though.
+
+### Structure in my own song (Cepstogram)
+
+```{r, ssm}
+bzt <-
+  get_tidy_audio_analysis("4pWXN0gyIOqxODSGGgAMr4") |> # Change URI.
+  # get_tidy_audio_analysis("5uL2NjzkGMbDcaKKrCdFzG") |>
+  compmus_align(beats, segments) |>                     # Change `bars`
+  select(beats) |>                                      #   in all three
+  unnest(beats) |>                                      #   of these lines.
+  mutate(
+    pitches =
+      map(segments,
+        compmus_summarise, pitches,
+        method = "rms", norm = "euclidean"              # Change summary & norm.
+      )
+  ) |>
+  mutate(
+    timbre =
+      map(segments,
+        compmus_summarise, timbre,
+        method = "rms", norm = "euclidean"              # Change summary & norm.
+      )
+  )
+
+ssm <- bzt |>
+  compmus_self_similarity(pitches, "aitchison") |>
+  ggplot(
+    aes(
+      x = xstart + xduration / 2,
+      width = xduration,
+      y = ystart + yduration / 2,
+      height = yduration,
+      fill = d
+    )
+  ) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis_c(guide = "none") +
+  theme_classic() +
+  labs(x = "", y = "")
+
+cepsto <- bzt |>
+  compmus_gather_timbre() |>
+  ggplot(
+    aes(
+      x = start + duration / 2,
+      width = duration,
+      y = basis,
+      fill = value
+    )
+  ) +
+  geom_tile() +
+  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
+  scale_fill_viridis_c() +                              
+  theme_classic()
+
+grid.arrange(ssm, cepsto, nrow=2)
+```
+
+***
+
+This is a cepstogram of the song [Still Together](https://open.spotify.com/track/4pWXN0gyIOqxODSGGgAMr4), which is (coincidentally) made by me and a friend. (Do give it a listen if you have the time :D)
+
+In the cepstogram, you can see that the introduction and buildup have a big presence of the second timbre coefficient. In the two drops, starting from around 50 seconds, you can see that the first coefficient becomes more present. This isn't unexpected at all, since loudness is key in EDM drops and the first coefficient represents loudness.
+
+For good measure, I have also included a self-similarity matrix, to point out some other interesting things. In the track, we used the same chord progression throughout, and only changed this in the outro, which can be clearly seen by the black box on the end of the main diagonal of the SSM. The two drops can also be determined by the two darker section in the middle. This is mostly due to new melodic elements being introduced.
+
+Sadly, I had issues with lining up the plots and couldn't find out how to fix it...
+
+### Analysis of gold away and gold away (heart version) by Former Hero. (Self-similarity)
 
 ```{r formerhero}
 original <-
@@ -347,76 +416,11 @@ Former Hero is a UK-based producer combining genres like post-rock and ambient w
 
 I've created 4 self similarity matrices for both tracks. The top two are created using chroma and timbre features of the original track, while the bottom 2 are created using the edited version.
 
-### Cepstogram
+It's easy to discern 3 main parts in the top row's timbre-based SSM. There is also a pattern and some diagonal lines distinguishable in the chroma-based SSM indicating similar parts in the piece. It's interesting to see how the big block around 80 seconds in the timbre SSM doesn't quite line up with the chroma features, since it features some very airy and noisy synths while playing mostly the same melody as before, which means this change does show up in the timbre-based one, but not in the chroma-based one.
 
-```{r, cepstogram}
-bzt <-
-  get_tidy_audio_analysis("4pWXN0gyIOqxODSGGgAMr4") |> # Change URI.
-  # get_tidy_audio_analysis("5uL2NjzkGMbDcaKKrCdFzG") |>
-  compmus_align(beats, segments) |>                     # Change `bars`
-  select(beats) |>                                      #   in all three
-  unnest(beats) |>                                      #   of these lines.
-  mutate(
-    pitches =
-      map(segments,
-        compmus_summarise, pitches,
-        method = "rms", norm = "euclidean"              # Change summary & norm.
-      )
-  ) |>
-  mutate(
-    timbre =
-      map(segments,
-        compmus_summarise, timbre,
-        method = "rms", norm = "euclidean"              # Change summary & norm.
-      )
-  )
+For the edit, it is easy to see that it has much more repetition and similarity all throughout the piece. This isn't all too surprising as it is an EDM rework of the previous piece. With only a few switch-ups throughout the track, which are also easily discernable in both self-similarity matrices. One such switch-up is immediately after the intro, where a grainy piano is introduced, after which a house beat is introduced. This is around the 50 seconds mark and is easily visible. Another switch-up is seen just after 100 seconds, and is again easily spotted in both matrices.
 
-bzt |>
-  compmus_gather_timbre() |>
-  ggplot(
-    aes(
-      x = start + duration / 2,
-      width = duration,
-      y = basis,
-      fill = value
-    )
-  ) +
-  geom_tile() +
-  labs(x = "Time (s)", y = NULL, fill = "Magnitude") +
-  scale_fill_viridis_c() +
-  theme_classic()
-```
-
-***
-
-Text
-
-### Self-similarity matrix
-
-```{r, ssm}
-bzt |>
-  compmus_self_similarity(pitches, "aitchison") |>
-  ggplot(
-    aes(
-      x = xstart + xduration / 2,
-      width = xduration,
-      y = ystart + yduration / 2,
-      height = yduration,
-      fill = d
-    )
-  ) +
-  geom_tile() +
-  coord_fixed() +
-  scale_fill_viridis_c(guide = "none") +
-  theme_classic() +
-  labs(x = "", y = "")
-```
-
-***
-
-This is a self-similarity matrix of the song Still Together, which is (coincidentally) made by me and a friend. In the track, we used the same chord progression throughout, and only changed this in the outro, which can be clearly seen by the black box on the end of the main diagonal. The two drops can also be determined by the two darker section in the middle. This is mostly due to new melodic elements being introduced.
-
-### How different are Gold Away and its edit?
+### How different are Gold Away and its edit? (Chordograms)
 
 ```{r, gold_away_vs_gold_away_edit}
 gold_away <-
@@ -482,7 +486,9 @@ I've included 2 chordograms of 2 different tracks. They're made by Former Hero, 
 
 The second track is an edit of this track, called [gold away - heart version](https://open.spotify.com/track/2NsOLbG8B9d2QuzKVJO5hZ). This track is a more "housey" version which samples the original. Its chordogram is a bit difficult to read, but it is clear that in the edit, the piece is pitched up with 2 semitones. Since the track is also faster paced, and is longer than the original, it is harder to discern the chords that are being played. However, the same pattern is still visible, it's just in a higher place compared to the first chordogram.
 
-Chordograms are a good way to compare these two tracks, as they are both by the same artist and are very similar in nature.
+Another pattern which is visible is the vertical banding in the lower chordogram. I believe this shows up here, because of atonal sound effects. For example, at the part around the 100 seconds mark, there are effects of buttons being pressed on a tape machine, which don't really fall into specific chords obviously.
+
+All in all, I think chordograms are a good way to compare these two tracks, as they are both by the same artist and are very similar in nature.
 
 ### Does the Bitbird sound change over the years? (Track level summaries) {data-commentary-width="400"}
 
@@ -527,3 +533,138 @@ These are the results of the analysis of the tracks of 4 albums. These albums ar
 I have plotted the distribution of the Spotify Timbre Coefficients for each album. These coefficients are hard to interpret, but they are a good way to compare the timbre of the tracks in the albums. As you can see, the distributions for the most part are very similar, but there are also a few trends that can be seen. For example, we can see that the distribution of coefficient 2 is clearly going down. Over the years, although the distribution of it in the first compilation is very widespread. The second coefficent is associated with the brightness of the track, so according to this analysis, one could say that the overall brightness coefficent of the tracks is steadily decreasing. This is also a trend that can be heard, when listening to the compilations.
 
 This same downward trend can be seen in the distributions of the 3rd coefficient. This coefficient is associated with the flatness of the sounds, which is a way to quantify how much a sound resembles a pure tone, as opposed to being noise-like. This is a very interesting trend, because the music in the compilations is indeed becoming more and more organic and "lo-fi noisy" over the years.
+
+### Why tempograms work
+
+```{r tempogram}
+a_lydian <- readRDS(file = "data/a-lydian-data.RDS")
+
+tempogram_1 <- readRDS(file = "data/tempogram-1.RDS")
+
+dont_feel_anything <- readRDS(file = "data/dont-feel-anything-data.RDS")
+
+tempogram_2 <- readRDS(file = "data/tempogram-2.RDS")
+
+grid.arrange(tempogram_1, tempogram_2, nrow = 2)
+```
+
+***
+
+[A Lydian](https://open.spotify.com/track/18U87POTjpJVmSUL8usDIO) is a beautiful piano piece by Analogue Dear, which also features some atmospheric pads. As you can see, the tempogram fails to find a consensus on the tempo, but it does seem to pick up smears of tempo around certain parts. This is due to the piece's only tempo-indicating feature being the piano, which is also played at various tempos.
+
+Below, I have included a tempogram of San Holo's [i don't feel anything anymore](https://open.spotify.com/track/3P6VeiaresuGYqioZSpors), which starts of really soft, with some keys and pads being played. At around 50 seconds into the track, a heavy bass and some acoustic guitar is added which is being played at a constant tempo. Interestingly, the tempogram performs better in the first part, where there aren't many transient features yet. Up until 3 minutes into the song, it varies a bit between the calmer bits and heavier bass bits. After this mark, however, synths playing regularly timed arpeggios kick in, as well as a kick. Here the algorithm performs pretty good. After this, a drop happens and so the tempogram performs very well and you can see a clear line forming at around 155 BPM. Even though this might seem very high, when tapping along with the rhythm of the kick, you'll find it is a very accurate estimate. After the drop, the pads come in again and the piece is ended in a very calm, taped post-rocky way.
+
+These two tempograms are pretty much polar opposites of each other and it is very interesting to see how the algorithm performs on two very different tracks!
+
+### What are key features and differences in ILLENIUM's, Dabin's, and Said The Sky's music?
+
+```{r, classifier}
+classifier_data = readRDS(file = "data/classifier-data.RDS")
+classifier_features <-
+  classifier_data |>  # For your portfolio, change this to the name of your corpus.
+  mutate(
+    playlist = factor(playlist),
+    segments = map2(segments, key, compmus_c_transpose),
+    pitches =
+      map(
+        segments,
+        compmus_summarise, pitches,
+        method = "mean", norm = "manhattan"
+      ),
+    timbre =
+      map(
+        segments,
+        compmus_summarise, timbre,
+        method = "mean",
+      )
+  ) |>
+  mutate(pitches = map(pitches, compmus_normalise, "clr")) |>
+  mutate_at(vars(pitches, timbre), map, bind_rows) |>
+  unnest(cols = c(pitches, timbre))
+
+classifier_recipe <-
+  recipe(
+    playlist ~
+      danceability +
+      energy +
+      loudness +
+      speechiness +
+      acousticness +
+      instrumentalness +
+      liveness +
+      valence +
+      tempo +
+      duration +
+      c01 + c02 + c03 + c04 + c05 + c06 +
+      c07 + c08 + c09 + c10 + c11 + c12,
+    data = classifier_features           # Use the same name as the previous block.
+  ) |>
+  step_center(all_predictors()) |>
+  step_scale(all_predictors())      # Converts to z-scores.
+  # step_range(all_predictors())    # Sets range to [0, 1].
+
+classifier_cv <- classifier_features |> vfold_cv(5)
+
+forest_model <-
+  rand_forest() |>
+  set_mode("classification") |> 
+  set_engine("ranger", importance = "impurity")
+classifier_forest <- 
+  workflow() |> 
+  add_recipe(classifier_recipe) |> 
+  add_model(forest_model) |> 
+  fit_resamples(
+    classifier_cv, 
+    control = control_resamples(save_pred = TRUE)
+  )
+
+forest_pr <- classifier_forest |> get_pr()
+
+importance_plot <- workflow() |> 
+  add_recipe(classifier_recipe) |> 
+  add_model(forest_model) |> 
+  fit(classifier_features) |> 
+  pluck("fit", "fit", "fit") |>
+  ranger::importance() |> 
+  enframe() |> 
+  mutate(name = fct_reorder(name, value)) |> 
+  ggplot(aes(name, value)) + 
+  geom_col() + 
+  coord_flip() +
+  theme_minimal() +
+  labs(x = NULL, y = "Importance")
+
+classifier_plot <- classifier_features |>
+  ggplot(aes(x = c01, y = c05, colour = playlist, size = acousticness)) +
+  geom_point(alpha = 0.8) +
+  scale_color_viridis_d() +
+  labs(
+    x = "Timbre Component 1",
+    y = "Timbre Component 5",
+    size = "Acousticness",
+    colour = "Playlist"
+  )
+
+grid.arrange(importance_plot, classifier_plot, nrow = 2)
+
+```
+
+***
+
+The two plots show the results of a Random Forest Classifier trained on all Spotify track features, including all timbre coefficients and key features. I have trained this classifier on three playlists, namely slices from the [This Is Illenium](https://open.spotify.com/playlist/37i9dQZF1DZ06evO2nTSE0), [This Is Dabin](https://open.spotify.com/playlist/37i9dQZF1DZ06evO4lTxTj) and [This Is Said The Sky](https://open.spotify.com/playlist/37i9dQZF1DZ06evO2NCvn4). These three very comparable artists are well represented in my personal playlist, and have had many collaborations over the years. I wanted to see in which way their individual styles differ. 
+
+In the pre-processing of the data, I first excluded any tracks which feature any combination of these three artists. After all, the classifier can only pick one artist, which makes it impossible for it to work correctly. Secondly, I took the same amount of tracks from each playlist so they are represented equally. 
+
+Using five-fold cross validation, this classifier was able to achieve pretty good accuracy, with both precision and recall for each artist begin around 60%.
+This is a significant improvement when compared to the k-nearest neighbours approach, which resulted in the precisions and recall ranging from around 30% to around 50%. 
+
+I plotted some of the most important features against each other, and it is clearly visible that Said The Sky's music is more acoustic when compared to the other 2. Illenium seems to make the loudest music, which isn't too surprising since he makes the most 'poppy' music, but this is also weird since Dabin likes to create very heavy bass music. Sadly, the accuracy statistics drop when I remove the higher order timbre features from the training data, which makes it harder to explain as to why this classifier behaves the way it does.
+
+### Conclusions
+In the last 8 weeks, I have learned a lot of new things about music. Some of these things I had never thought of, and they really intrigued me. I thoroughly enjoyed analyzing various tracks from my playlist. Although at first, I wanted to do a time based analysis of the songs I listen to from time to time, I think I like my portfolio more as it is now, since I gained a deeper understanding of what makes up these tracks and how they can be analyzed.
+
+I really liked taking a look at all the track-level features Spotify calculates, and playing around with how they relate to one another for my corpus. I also liked how my tempograms turned out to be looking good but also failing beautifully at the same time.
+
+Creating a Random Forest really spoke to me as an AI student and I think this is a great application of AI.
+
+Realistically, I don't think anyone really benefits from reading my portfolio, except for maybe thinking "Hey, that's a cool visualization!". I hope you loved reading my portfolio as much as I did creating it.
